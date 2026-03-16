@@ -1,1 +1,7 @@
 project_id = "zjlvbwepdhvyxeoqddau"
+
+[functions.airtable-proxy]
+verify_jwt = false
+
+[functions.process-sale]
+verify_jwt = false
