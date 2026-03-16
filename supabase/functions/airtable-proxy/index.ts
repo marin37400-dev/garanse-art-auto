@@ -25,6 +25,17 @@ serve(async (req) => {
     const tableName = encodeURIComponent("Garanse Toiles");
     const baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
 
+    if (action === "list_tables") {
+      const res = await fetch(`https://api.airtable.com/v0/meta/bases/${AIRTABLE_BASE_ID}/tables`, {
+        headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
+      });
+      const body = await res.text();
+      return new Response(body, {
+        status: res.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "list") {
       const records: any[] = [];
       let offset: string | undefined;
