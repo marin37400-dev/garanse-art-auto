@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Artwork, mapAirtableToArtwork } from "@/types/artwork";
+import type { Artwork } from "@/types/artwork";
+import { mapAirtableToArtwork } from "@/types/artwork";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
