@@ -69,7 +69,6 @@ const Index = () => {
 
   const filtered = artworks.filter(
     (a) =>
-      a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.citation.toLowerCase().includes(search.toLowerCase())
   );
 
