@@ -5,7 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TABLE_NAME = "Garanse Toiles (test Lovable)";
+const BASE_ID = "appLE4R18nylnmOTF";
+const TABLE_ID = "tblocgx4BO6Pqjfa7";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -13,19 +14,17 @@ serve(async (req) => {
   }
 
   const AIRTABLE_API_KEY = Deno.env.get("AIRTABLE_API_KEY");
-  const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
 
-  if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
+  if (!AIRTABLE_API_KEY) {
     return new Response(
-      JSON.stringify({ error: "Airtable credentials not configured" }),
+      JSON.stringify({ error: "Airtable API token not configured" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
   try {
     const { action, recordId } = await req.json();
-    const tableName = encodeURIComponent(TABLE_NAME);
-    const baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
+    const baseUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`;
 
     if (action === "list") {
       const records: any[] = [];
