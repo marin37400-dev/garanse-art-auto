@@ -1,13 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const TABLE_NAME = "Garanse Toiles (test Lovable)";
+
 const ARTIST = {
   name: "Garanse",
-  address: "21 Rue de Monteaux\n37530 Cangey",
+  address: "21 Rue de Monteaux\n37530 Cangey\nFrance",
   phone: "06 63 77 80 84",
   email: "annegaranse@gmail.com",
   siret: "83533116600024",
@@ -18,128 +22,184 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
-function generateInvoiceHtml(record: any): string {
+async function generateInvoicePdf(record: any): Promise<Uint8Array> {
   const f = record.fields;
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595, 842]); // A4
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontSize = 10;
+  const color = rgb(0.17, 0.17, 0.17);
+  const accent = rgb(0.71, 0.40, 0.11);
+
+  let y = 790;
+  const left = 50;
+  const right = 350;
+
+  const drawText = (text: string, x: number, yPos: number, options: any = {}) => {
+    page.drawText(text, {
+      x,
+      y: yPos,
+      size: options.size || fontSize,
+      font: options.bold ? fontBold : font,
+      color: options.color || color,
+    });
+  };
+
+  // Title
+  drawText("FACTURE", 230, y, { size: 22, bold: true, color: accent });
+  y -= 30;
+
+  // Invoice number
   const dateVente = f["Date de vente"] || new Date().toISOString();
   const invoiceNum = `FAC-${new Date(dateVente).getFullYear()}-${record.id.slice(-6).toUpperCase()}`;
+  drawText(`N° ${invoiceNum}`, right + 80, y, { size: 9 });
+  y -= 14;
+  drawText(`Date : ${formatDate(dateVente)}`, right + 80, y, { size: 9 });
+  y -= 30;
 
-  return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<style>
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 40px; color: #2d2d2d; font-size: 13px; line-height: 1.6; }
-  .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-  .artist-info, .client-info { max-width: 45%; }
-  .artist-info h2, .client-info h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #b5651d; margin-bottom: 8px; }
-  h1 { text-align: center; font-size: 24px; color: #b5651d; margin: 30px 0; letter-spacing: 2px; }
-  .invoice-meta { text-align: right; margin-bottom: 30px; color: #666; }
-  table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-  th { background: #f5f0eb; text-align: left; padding: 10px 12px; border-bottom: 2px solid #b5651d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-  td { padding: 10px 12px; border-bottom: 1px solid #e8e0d8; }
-  .total-row td { font-weight: bold; font-size: 16px; border-top: 2px solid #b5651d; border-bottom: none; }
-  .mention { margin-top: 40px; font-style: italic; color: #888; font-size: 11px; border-top: 1px solid #e8e0d8; padding-top: 15px; }
-  .footer { margin-top: 30px; text-align: center; color: #aaa; font-size: 10px; }
-</style>
-</head>
-<body>
-  <h1>FACTURE</h1>
-  <div class="invoice-meta">
-    <p>N° ${invoiceNum}</p>
-    <p>Date : ${formatDate(dateVente)}</p>
-  </div>
-  <div class="header">
-    <div class="artist-info">
-      <h2>Artiste</h2>
-      <p><strong>${ARTIST.name}</strong><br>
-      ${ARTIST.address.replace("\n", "<br>")}<br>
-      Tél : ${ARTIST.phone}<br>
-      Email : ${ARTIST.email}<br>
-      SIRET : ${ARTIST.siret}</p>
-    </div>
-    <div class="client-info">
-      <h2>Client</h2>
-      <p><strong>${f["Vendue à"] || "—"}</strong><br>
-      ${f["Adresse"] || ""}<br>
-      ${f["Numéro tél"] ? "Tél : " + f["Numéro tél"] : ""}</p>
-    </div>
-  </div>
-  <table>
-    <thead>
-      <tr><th>Description</th><th style="text-align:right">Prix</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          <strong>${f["Name"] || "Sans titre"}</strong><br>
-          Technique : huile sur toile<br>
-          Dimensions : ${f["Dimension"] || "—"}<br>
-          ${f["Citation"] ? '<em>« ' + f["Citation"] + ' »</em>' : ""}
-        </td>
-        <td style="text-align:right">${f["Prix"] || 0} €</td>
-      </tr>
-      <tr class="total-row">
-        <td>TOTAL</td>
-        <td style="text-align:right">${f["Prix"] || 0} €</td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="mention">TVA non applicable, art. 293 B du CGI</div>
-  <div class="footer">
-    <p>${ARTIST.name} — ${ARTIST.address.replace("\n", ", ")} — SIRET ${ARTIST.siret}</p>
-  </div>
-</body>
-</html>`;
+  // Artist info
+  drawText("ARTISTE", left, y, { size: 11, bold: true, color: accent });
+  y -= 16;
+  drawText(ARTIST.name, left, y, { bold: true });
+  y -= 14;
+  for (const line of ARTIST.address.split("\n")) {
+    drawText(line, left, y);
+    y -= 14;
+  }
+  drawText(`Tél : ${ARTIST.phone}`, left, y);
+  y -= 14;
+  drawText(`Email : ${ARTIST.email}`, left, y);
+  y -= 14;
+  drawText(`SIRET : ${ARTIST.siret}`, left, y);
+
+  // Client info
+  let yClient = 790 - 30 - 14 - 30;
+  drawText("CLIENT", right, yClient, { size: 11, bold: true, color: accent });
+  yClient -= 16;
+  drawText(f["Vendue à"] || "—", right, yClient, { bold: true });
+
+  // Table header
+  y -= 40;
+  page.drawRectangle({ x: left, y: y - 4, width: 495, height: 20, color: rgb(0.96, 0.94, 0.92) });
+  drawText("DESCRIPTION", left + 5, y, { size: 9, bold: true });
+  drawText("PRIX", 480, y, { size: 9, bold: true });
+  y -= 24;
+
+  // Artwork details
+  drawText(f["Citation"] || "Sans titre", left + 5, y, { bold: true });
+  y -= 14;
+  if (f["Format"]) { drawText(`Format : ${f["Format"]}`, left + 5, y); y -= 14; }
+  if (f["Dimension"]) { drawText(`Dimensions : ${f["Dimension"]}`, left + 5, y); y -= 14; }
+  drawText("Technique : huile sur toile", left + 5, y);
+  y -= 14;
+  if (f["Date de création"]) { drawText(`Date de création : ${formatDate(f["Date de création"])}`, left + 5, y); y -= 14; }
+  if (f["Lieu de vente"]) { drawText(`Lieu de vente : ${f["Lieu de vente"]}`, left + 5, y); y -= 14; }
+
+  // Price
+  const prix = `${f["Prix"] || 0} €`;
+  drawText(prix, 480, 790 - 30 - 14 - 30 - 40 - 24, { bold: true });
+
+  // Total line
+  y -= 10;
+  page.drawLine({ start: { x: left, y }, end: { x: 545, y }, thickness: 1.5, color: accent });
+  y -= 18;
+  drawText("TOTAL", left + 5, y, { size: 13, bold: true });
+  drawText(prix, 470, y, { size: 13, bold: true, color: accent });
+
+  // Legal mention
+  y -= 40;
+  drawText("TVA non applicable, art. 293 B du CGI", left, y, { size: 9, color: rgb(0.5, 0.5, 0.5) });
+
+  // Footer
+  drawText(`${ARTIST.name} — 21 Rue de Monteaux, 37530 Cangey — SIRET ${ARTIST.siret}`, 120, 30, { size: 8, color: rgb(0.6, 0.6, 0.6) });
+
+  return await pdfDoc.save();
 }
 
-function generateCertificateHtml(record: any): string {
+async function generateCertificatePdf(record: any): Promise<Uint8Array> {
   const f = record.fields;
-  const dateVente = f["Date de vente"] || new Date().toISOString();
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595, 842]);
+  const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  const fontItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+  const fontSize = 11;
+  const color = rgb(0.17, 0.17, 0.17);
+  const accent = rgb(0.71, 0.40, 0.11);
 
-  return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<style>
-  body { font-family: 'Georgia', serif; margin: 50px; color: #2d2d2d; font-size: 14px; line-height: 1.8; }
-  h1 { text-align: center; font-size: 26px; color: #b5651d; letter-spacing: 3px; margin-bottom: 40px; }
-  .declaration { text-align: center; font-style: italic; margin: 30px 0; font-size: 15px; }
-  .details { max-width: 500px; margin: 30px auto; }
-  .details table { width: 100%; }
-  .details td { padding: 6px 0; }
-  .details td:first-child { font-weight: bold; width: 180px; color: #666; }
-  .legal { margin-top: 50px; font-size: 12px; color: #888; text-align: center; font-style: italic; }
-  .signature { margin-top: 60px; text-align: right; }
-  .signature .place-date { color: #666; margin-bottom: 30px; }
-  .signature .name { font-size: 20px; font-family: 'Georgia', serif; font-style: italic; color: #b5651d; }
-  .siret-info { text-align: center; margin-top: 10px; font-size: 11px; color: #aaa; }
-</style>
-</head>
-<body>
-  <h1>CERTIFICAT D'AUTHENTICITÉ</h1>
-  <p class="declaration">
-    Je soussignée, ${ARTIST.name}, certifie que l'œuvre désignée ci-dessous est une œuvre originale
-    et une pièce unique réalisée par moi-même.
-  </p>
-  <div class="details">
-    <table>
-      <tr><td>Titre</td><td>${f["Name"] || "Sans titre"}</td></tr>
-      <tr><td>Technique</td><td>Huile sur toile</td></tr>
-      <tr><td>Dimensions</td><td>${f["Dimension"] || "—"}</td></tr>
-      <tr><td>Date de création</td><td>${f["Date de création"] ? formatDate(f["Date de création"]) : "—"}</td></tr>
-      ${f["Citation"] ? `<tr><td>Citation</td><td><em>« ${f["Citation"]} »</em></td></tr>` : ""}
-    </table>
-  </div>
-  <p class="siret-info">SIRET : ${ARTIST.siret}</p>
-  <p class="legal">
-    Le présent certificat et les mentions qui y figurent constituent le droit de propriété de l'œuvre.
-  </p>
-  <div class="signature">
-    <p class="place-date">Fait le ${formatDate(dateVente)}, à Cangey</p>
-    <p class="name">${ARTIST.name}</p>
-  </div>
-</body>
-</html>`;
+  let y = 760;
+  const center = 297;
+
+  const drawCentered = (text: string, yPos: number, options: any = {}) => {
+    const f2 = options.bold ? fontBold : (options.italic ? fontItalic : font);
+    const w = f2.widthOfTextAtSize(text, options.size || fontSize);
+    page.drawText(text, {
+      x: center - w / 2,
+      y: yPos,
+      size: options.size || fontSize,
+      font: f2,
+      color: options.color || color,
+    });
+  };
+
+  const drawLeft = (text: string, x: number, yPos: number, options: any = {}) => {
+    page.drawText(text, {
+      x,
+      y: yPos,
+      size: options.size || fontSize,
+      font: options.bold ? fontBold : (options.italic ? fontItalic : font),
+      color: options.color || color,
+    });
+  };
+
+  // Title
+  drawCentered("CERTIFICAT D'AUTHENTICITÉ", y, { size: 22, bold: true, color: accent });
+  y -= 50;
+
+  // Declaration
+  const decl = "Je soussignée, Garanse, certifie que l'œuvre désignée ci-dessous";
+  const decl2 = "est une œuvre originale et une pièce unique réalisée par moi-même.";
+  drawCentered(decl, y, { italic: true, size: 12 });
+  y -= 16;
+  drawCentered(decl2, y, { italic: true, size: 12 });
+  y -= 50;
+
+  // Artwork details table
+  const tableX = 150;
+  const valX = 290;
+  const details: [string, string][] = [
+    ["Titre", f["Citation"] || "Sans titre"],
+    ["Format", f["Format"] || "—"],
+    ["Dimensions", f["Dimension"] || "—"],
+    ["Technique", "Huile sur toile"],
+    ["Date de création", f["Date de création"] ? formatDate(f["Date de création"]) : "—"],
+  ];
+
+  for (const [label, value] of details) {
+    drawLeft(label, tableX, y, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+    drawLeft(value, valX, y);
+    y -= 18;
+  }
+
+  y -= 20;
+  drawCentered(`SIRET : ${ARTIST.siret}`, y, { size: 10, color: rgb(0.6, 0.6, 0.6) });
+
+  y -= 40;
+  const legal = "Le présent certificat et les mentions qui y figurent";
+  const legal2 = "constituent le droit de propriété de l'œuvre.";
+  drawCentered(legal, y, { italic: true, size: 10, color: rgb(0.5, 0.5, 0.5) });
+  y -= 14;
+  drawCentered(legal2, y, { italic: true, size: 10, color: rgb(0.5, 0.5, 0.5) });
+
+  // Signature block
+  y -= 60;
+  const dateVente = f["Date de vente"] || new Date().toISOString();
+  drawLeft(`Fait le ${formatDate(dateVente)}, à Cangey`, 330, y, { color: rgb(0.4, 0.4, 0.4) });
+  y -= 30;
+  drawLeft(ARTIST.name, 380, y, { size: 18, italic: true, color: accent });
+
+  return await pdfDoc.save();
 }
 
 serve(async (req) => {
@@ -149,71 +209,88 @@ serve(async (req) => {
 
   const AIRTABLE_API_KEY = Deno.env.get("AIRTABLE_API_KEY");
   const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    return new Response(
-      JSON.stringify({ error: "Airtable credentials not configured" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Airtable credentials not configured" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: "Supabase credentials not configured" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {
     const { recordId } = await req.json();
     if (!recordId) throw new Error("recordId is required");
 
-    const tableName = encodeURIComponent("Garanse Toiles");
+    const tableName = encodeURIComponent(TABLE_NAME);
     const baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
 
     // 1. Fetch the record
+    console.log(`Fetching record ${recordId}...`);
     const recordRes = await fetch(`${baseUrl}/${recordId}`, {
       headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
     });
-    if (!recordRes.ok) throw new Error(`Airtable fetch error: ${recordRes.status}`);
+    if (!recordRes.ok) {
+      const errBody = await recordRes.text();
+      throw new Error(`Airtable fetch error [${recordRes.status}]: ${errBody}`);
+    }
     const record = await recordRes.json();
+    const f = record.fields;
+    console.log("Record fields:", JSON.stringify(Object.keys(f)));
 
-    // 2. Check if already generated
-    if (record.fields["Facture générée"]) {
-      return new Response(
-        JSON.stringify({ message: "Documents already generated", skipped: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // 2. Check conditions: Test Lovable = true, Date de vente not empty, Facture générée = false
+    if (!f["Test Lovable"]) {
+      return new Response(JSON.stringify({ message: "Test Lovable is not checked", skipped: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 3. Check if date de vente exists and is within 7 days
-    const dateVente = record.fields["Date de vente"];
-    if (!dateVente) {
-      return new Response(
-        JSON.stringify({ message: "No sale date", skipped: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!f["Date de vente"]) {
+      return new Response(JSON.stringify({ message: "No sale date", skipped: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const saleDate = new Date(dateVente);
-    const now = new Date();
-    const diffDays = (now.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays > 7) {
-      return new Response(
-        JSON.stringify({ message: "Sale is older than 7 days", skipped: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (f["Facture générée"]) {
+      return new Response(JSON.stringify({ message: "Already processed", skipped: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 4. Generate HTML documents
-    const invoiceHtml = generateInvoiceHtml(record);
-    const certificateHtml = generateCertificateHtml(record);
+    // 3. Generate PDFs
+    console.log("Generating invoice PDF...");
+    const invoiceBytes = await generateInvoicePdf(record);
+    console.log("Generating certificate PDF...");
+    const certificateBytes = await generateCertificatePdf(record);
 
-    // 5. Generate PDFs using a headless approach - store HTML as attachments
-    // Since Deno edge functions can't run a browser, we upload HTML files to Airtable
-    const artworkName = (record.fields["Name"] || "oeuvre").replace(/[^a-zA-Z0-9àâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ]/g, "_");
-    
-    // Convert HTML to base64 data URIs for Airtable attachment
-    const invoiceBlob = new TextEncoder().encode(invoiceHtml);
-    const certBlob = new TextEncoder().encode(certificateHtml);
-    
-    const invoiceBase64 = btoa(String.fromCharCode(...invoiceBlob));
-    const certBase64 = btoa(String.fromCharCode(...certBlob));
+    // 4. Upload to Supabase Storage
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const artworkSlug = (f["Citation"] || "oeuvre").replace(/[^a-zA-Z0-9]/g, "_").slice(0, 40);
+    const timestamp = Date.now();
+    const invoicePath = `${recordId}/facture_${artworkSlug}_${timestamp}.pdf`;
+    const certPath = `${recordId}/certificat_${artworkSlug}_${timestamp}.pdf`;
 
-    // 6. Update Airtable: mark as generated and attach documents
+    console.log("Uploading invoice to storage...");
+    const { error: invErr } = await supabase.storage
+      .from("invoices")
+      .upload(invoicePath, invoiceBytes, { contentType: "application/pdf", upsert: true });
+    if (invErr) throw new Error(`Invoice upload error: ${invErr.message}`);
+
+    console.log("Uploading certificate to storage...");
+    const { error: certErr } = await supabase.storage
+      .from("invoices")
+      .upload(certPath, certificateBytes, { contentType: "application/pdf", upsert: true });
+    if (certErr) throw new Error(`Certificate upload error: ${certErr.message}`);
+
+    // 5. Get public URLs
+    const { data: invUrl } = supabase.storage.from("invoices").getPublicUrl(invoicePath);
+    const { data: certUrl } = supabase.storage.from("invoices").getPublicUrl(certPath);
+    console.log("Invoice URL:", invUrl.publicUrl);
+    console.log("Certificate URL:", certUrl.publicUrl);
+
+    // 6. Update Airtable: attach PDFs + set checkboxes
+    console.log("Updating Airtable record...");
     const updateRes = await fetch(`${baseUrl}/${recordId}`, {
       method: "PATCH",
       headers: {
@@ -222,7 +299,10 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         fields: {
+          "Facture": [{ url: invUrl.publicUrl }],
+          "Certificat": [{ url: certUrl.publicUrl }],
           "Facture générée": true,
+          "Certificat généré": true,
         },
       }),
     });
@@ -232,12 +312,13 @@ serve(async (req) => {
       throw new Error(`Airtable update error [${updateRes.status}]: ${errText}`);
     }
 
+    console.log("Done! Record processed successfully.");
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Documents generated successfully",
-        invoiceHtml,
-        certificateHtml,
+        message: "Documents generated and uploaded",
+        invoiceUrl: invUrl.publicUrl,
+        certificateUrl: certUrl.publicUrl,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

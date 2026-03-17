@@ -5,6 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const TABLE_NAME = "Garanse Toiles (test Lovable)";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,19 +24,8 @@ serve(async (req) => {
 
   try {
     const { action, recordId } = await req.json();
-    const tableName = encodeURIComponent("Garanse Toiles");
+    const tableName = encodeURIComponent(TABLE_NAME);
     const baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
-
-    if (action === "list_tables") {
-      const res = await fetch(`https://api.airtable.com/v0/meta/bases/${AIRTABLE_BASE_ID}/tables`, {
-        headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
-      });
-      const body = await res.text();
-      return new Response(body, {
-        status: res.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     if (action === "list") {
       const records: any[] = [];
@@ -63,7 +54,10 @@ serve(async (req) => {
       const res = await fetch(`${baseUrl}/${recordId}`, {
         headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
       });
-      if (!res.ok) throw new Error(`Airtable error: ${res.status}`);
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Airtable error [${res.status}]: ${errBody}`);
+      }
       const record = await res.json();
       return new Response(JSON.stringify(record), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
