@@ -242,7 +242,8 @@ serve(async (req) => {
     console.log("Record fields:", JSON.stringify(Object.keys(f)));
 
     // 2. Check conditions: Test Lovable = true, Date de vente not empty, Facture générée = false
-    if (!f["Test Lovable"]) {
+    const isTestLovable = Boolean(f["Test Lovable"] ?? f["Test lovable"]);
+    if (!isTestLovable) {
       return new Response(JSON.stringify({ message: "Test Lovable is not checked", skipped: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
