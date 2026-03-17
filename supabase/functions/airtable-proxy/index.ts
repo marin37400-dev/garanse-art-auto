@@ -14,11 +14,10 @@ serve(async (req) => {
   }
 
   const AIRTABLE_API_KEY = Deno.env.get("AIRTABLE_API_KEY");
-  const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
 
-  if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
+  if (!AIRTABLE_API_KEY) {
     return new Response(
-      JSON.stringify({ error: "Airtable credentials not configured" }),
+      JSON.stringify({ error: "Airtable API token not configured" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
