@@ -262,7 +262,7 @@ function ArtworkCard({
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base font-display leading-tight">{artwork.name}</CardTitle>
+          <CardTitle className="text-base font-display leading-tight">{artwork.citation || "Sans titre"}</CardTitle>
           <div className="flex gap-1 flex-shrink-0">
             {artwork.dateVente ? (
               artwork.factureGeneree ? (
