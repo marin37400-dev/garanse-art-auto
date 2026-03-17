@@ -5,7 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TABLE_NAME = "Garanse Toiles (test Lovable)";
+const BASE_ID = "appLE4R18nylnmOTF";
+const TABLE_ID = "tblocgx4BO6Pqjfa7";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
