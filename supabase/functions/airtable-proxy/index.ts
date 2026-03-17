@@ -24,8 +24,7 @@ serve(async (req) => {
 
   try {
     const { action, recordId } = await req.json();
-    const tableName = encodeURIComponent(TABLE_NAME);
-    const baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
+    const baseUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`;
 
     if (action === "list") {
       const records: any[] = [];

@@ -226,8 +226,7 @@ serve(async (req) => {
     const { recordId } = await req.json();
     if (!recordId) throw new Error("recordId is required");
 
-    const tableName = encodeURIComponent(TABLE_NAME);
-    const baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
+    const baseUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`;
 
     // 1. Fetch the record
     console.log(`Fetching record ${recordId}...`);
