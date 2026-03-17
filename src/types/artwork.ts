@@ -1,64 +1,70 @@
 export interface AirtableArtwork {
   id: string;
   fields: {
-    Name?: string;
     Citation?: string;
+    Photo?: Array<{ url: string; filename: string }>;
     Format?: string;
     Dimension?: string;
     Prix?: number;
     "Date de création"?: string;
-    "Mise en exposition à"?: string;
+    Expositions?: string;
     "Date de vente"?: string;
     "Vendue à"?: string;
-    Adresse?: string;
-    "Numéro tél"?: string;
     "Lieu de vente"?: string;
     "Mois de vente"?: string;
     "Année de vente"?: string;
+    Facture?: Array<{ url: string; filename: string }>;
     "Facture générée"?: boolean;
-    Documents?: Array<{ url: string; filename: string }>;
+    Certificat?: Array<{ url: string; filename: string }>;
+    "Certificat généré"?: boolean;
+    "Numéro de facture"?: string;
+    "Test Lovable"?: boolean;
   };
 }
 
 export interface Artwork {
   id: string;
-  name: string;
   citation: string;
+  photo: Array<{ url: string; filename: string }>;
   format: string;
   dimension: string;
   prix: number;
   dateCreation: string;
-  exposition: string;
+  expositions: string;
   dateVente: string | null;
   vendueA: string | null;
-  adresse: string | null;
-  telephone: string | null;
   lieuVente: string | null;
   moisVente: string | null;
   anneeVente: string | null;
+  facture: Array<{ url: string; filename: string }>;
   factureGeneree: boolean;
-  documents: Array<{ url: string; filename: string }>;
+  certificat: Array<{ url: string; filename: string }>;
+  certificatGenere: boolean;
+  numeroFacture: string;
+  testLovable: boolean;
 }
 
 export function mapAirtableToArtwork(record: AirtableArtwork): Artwork {
   const f = record.fields;
   return {
     id: record.id,
-    name: f.Name || "Sans titre",
     citation: f.Citation || "",
+    photo: f.Photo || [],
     format: f.Format || "",
     dimension: f.Dimension || "",
     prix: f.Prix || 0,
     dateCreation: f["Date de création"] || "",
-    exposition: f["Mise en exposition à"] || "",
+    expositions: f.Expositions || "",
     dateVente: f["Date de vente"] || null,
     vendueA: f["Vendue à"] || null,
-    adresse: f.Adresse || null,
-    telephone: f["Numéro tél"] || null,
     lieuVente: f["Lieu de vente"] || null,
     moisVente: f["Mois de vente"] || null,
     anneeVente: f["Année de vente"] || null,
+    facture: f.Facture || [],
     factureGeneree: f["Facture générée"] || false,
-    documents: f.Documents || [],
+    certificat: f.Certificat || [],
+    certificatGenere: f["Certificat généré"] || false,
+    numeroFacture: f["Numéro de facture"] || "",
+    testLovable: f["Test Lovable"] || false,
   };
 }

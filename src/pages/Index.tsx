@@ -69,7 +69,6 @@ const Index = () => {
 
   const filtered = artworks.filter(
     (a) =>
-      a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.citation.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -263,7 +262,7 @@ function ArtworkCard({
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base font-display leading-tight">{artwork.name}</CardTitle>
+          <CardTitle className="text-base font-display leading-tight">{artwork.citation || "Sans titre"}</CardTitle>
           <div className="flex gap-1 flex-shrink-0">
             {artwork.dateVente ? (
               artwork.factureGeneree ? (
@@ -296,18 +295,18 @@ function ArtworkCard({
           {artwork.vendueA && <span>👤 {artwork.vendueA}</span>}
         </div>
 
-        {artwork.documents.length > 0 && (
+        {(artwork.facture.length > 0 || artwork.certificat.length > 0) && (
           <div className="flex gap-2 mt-2">
-            {artwork.documents.map((doc, i) => (
-              <a
-                key={i}
-                href={doc.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                <FileText className="w-3 h-3" />
-                {doc.filename}
+            {artwork.facture.map((doc, i) => (
+              <a key={`f-${i}`} href={doc.url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                <FileText className="w-3 h-3" /> Facture
+              </a>
+            ))}
+            {artwork.certificat.map((doc, i) => (
+              <a key={`c-${i}`} href={doc.url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                <ShieldCheck className="w-3 h-3" /> Certificat
               </a>
             ))}
           </div>
