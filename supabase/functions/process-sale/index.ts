@@ -291,25 +291,50 @@ serve(async (req) => {
 
     // 6. Update Airtable: attach PDFs + set checkboxes
     console.log("Updating Airtable record...");
-    const updateRes = await fetch(`${baseUrl}/${recordId}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fields: {
-          "Facture": [{ url: invUrl.publicUrl }],
-          "Certificat": [{ url: certUrl.publicUrl }],
-          "Facture générée": true,
-          "Certificat généré": true,
-        },
-      }),
-    });
 
-    if (!updateRes.ok) {
+    const fieldVariants = [
+      { invoice: "Facture", certificate: "Certificat", invoiceDone: "Facture générée", certificateDone: "Certificat généré" },
+      { invoice: "facture", certificate: "certificat", invoiceDone: "Facture générée", certificateDone: "Certificat généré" },
+      { invoice: "Facture PDF", certificate: "Certificat PDF", invoiceDone: "Facture générée", certificateDone: "Certificat généré" },
+      { invoice: "Facture pdf", certificate: "Certificat pdf", invoiceDone: "Facture générée", certificateDone: "Certificat généré" },
+      { invoice: "Facture", certificate: "Certificat", invoiceDone: "Facture generee", certificateDone: "Certificat genere" },
+    ];
+
+    let updateOk = false;
+    let lastError = "";
+
+    for (const fieldsVariant of fieldVariants) {
+      const updateRes = await fetch(`${baseUrl}/${recordId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            [fieldsVariant.invoice]: [{ url: invUrl.publicUrl }],
+            [fieldsVariant.certificate]: [{ url: certUrl.publicUrl }],
+            [fieldsVariant.invoiceDone]: true,
+            [fieldsVariant.certificateDone]: true,
+          },
+        }),
+      });
+
+      if (updateRes.ok) {
+        updateOk = true;
+        break;
+      }
+
       const errText = await updateRes.text();
-      throw new Error(`Airtable update error [${updateRes.status}]: ${errText}`);
+      lastError = `Airtable update error [${updateRes.status}]: ${errText}`;
+
+      if (!errText.includes("UNKNOWN_FIELD_NAME")) {
+        throw new Error(lastError);
+      }
+    }
+
+    if (!updateOk) {
+      throw new Error(lastError || "Airtable update failed with unknown field names");
     }
 
     console.log("Done! Record processed successfully.");
