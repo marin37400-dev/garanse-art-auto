@@ -48,9 +48,38 @@ const Index = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast({ title: "Documents générés", description: "Facture et certificat créés avec succès." });
-      queryClient.invalidateQueries({ queryKey: ["artworks"] });
+    onSuccess: (data: any) => {
+      switch (data?.status) {
+        case "success":
+          toast({ title: "Documents générés ✅", description: "Facture et certificat créés avec succès." });
+          queryClient.invalidateQueries({ queryKey: ["artworks"] });
+          break;
+        case "email_failed":
+          toast({ title: "Documents générés ⚠️", description: "PDFs créés mais l'email n'a pas pu être envoyé.", variant: "destructive" });
+          queryClient.invalidateQueries({ queryKey: ["artworks"] });
+          break;
+        case "duplicate_skipped":
+          toast({ title: "Déjà traité", description: "Cette œuvre a déjà été facturée." });
+          break;
+        case "validation_failed":
+          toast({
+            title: "Champs manquants",
+            description: `Champs requis absents : ${(data.missingFields || []).join(", ")}`,
+            variant: "destructive",
+          });
+          break;
+        case "pdf_failed":
+          toast({ title: "Erreur PDF", description: data.detail || "La génération du PDF a échoué.", variant: "destructive" });
+          break;
+        case "supabase_storage_failed":
+          toast({ title: "Erreur stockage", description: data.detail || "L'upload a échoué.", variant: "destructive" });
+          break;
+        case "airtable_update_failed":
+          toast({ title: "Erreur Airtable", description: "La mise à jour Airtable a échoué.", variant: "destructive" });
+          break;
+        default:
+          toast({ title: "Résultat inconnu", description: JSON.stringify(data), variant: "destructive" });
+      }
     },
     onError: (err: Error) => {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
