@@ -14,9 +14,9 @@ const TABLE_ID = "tblocgx4BO6Pqjfa7";
 const AIRTABLE_FIELDS = {
   dateVente: "Date de vente",
   prix: "Prix",
-  dimension: "Dimension",
+  dimension: "Dim.",
   citation: "Citation",
-  emailClient: "Email client",
+  emailClient: "Email Client",
   numeroFacture: "Numéro facture",
   factureGeneree: "Facture générée",
   certificatGenere: "Certificat généré",
