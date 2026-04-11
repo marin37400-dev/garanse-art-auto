@@ -16,7 +16,7 @@ const AIRTABLE_FIELDS = {
   prix: "Prix",
   dimension: "Dimension",
   citation: "Citation",
-  emailClient: "Email client",
+  emailClient: "Email Client",
   numeroFacture: "Numéro facture",
   factureGeneree: "Facture générée",
   certificatGenere: "Certificat généré",
