@@ -37,7 +37,6 @@ const REQUIRED_FIELDS = [
   AIRTABLE_FIELDS.prix,
   AIRTABLE_FIELDS.dimension,
   AIRTABLE_FIELDS.citation,
-  AIRTABLE_FIELDS.emailClient,
   AIRTABLE_FIELDS.numeroFacture,
 ] as const;
 
